@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pomodoro App</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-..." crossorigin="anonymous">
+    <!-- custom styles -->
+    <link href="/styles.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <a class="navbar-brand" href="#">Pomodoro</a>
+    </nav>
+
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card shadow-lg">
+                    <div class="card-body">
+                        <h1 class="card-title text-center mb-4">Pomodoro Timer</h1>
+                        <!-- configuration form -->
+                        <form id="config-form" class="row g-3 mb-4">
+                            <div class="col-4">
+                                <label for="work-duration" class="form-label">Work</label>
+                                <input type="number" class="form-control" id="work-duration" value="25" min="1">
+                            </div>
+                            <div class="col-4">
+                                <label for="short-break" class="form-label">Short</label>
+                                <input type="number" class="form-control" id="short-break" value="5" min="1">
+                            </div>
+                            <div class="col-4">
+                                <label for="long-break" class="form-label">Long</label>
+                                <input type="number" class="form-control" id="long-break" value="15" min="1">
+                            </div>
+                        </form>
+
+                        <!-- timer display -->
+                        <div class="text-center mb-4">
+                            <h2 id="mode-label" class="badge bg-primary">Work</h2>
+                            <div id="timer-display" class="display-1 fw-bold mt-2">25:00</div>
+                        </div>
+
+                        <!-- controls -->
+                        <div class="text-center">
+                            <button id="start-btn" class="btn btn-success me-2">Start</button>
+                            <button id="pause-btn" class="btn btn-warning me-2" disabled>Pause</button>
+                            <button id="reset-btn" class="btn btn-danger" disabled>Reset</button>
+                        </div>
+                    </div>
+                </div>
+                <p class="text-center mt-3 text-muted">Built with Bootstrap</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- optional audio element for notification -->
+    <audio id="beep-sound" src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA=" preload="auto"></audio>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-..." crossorigin="anonymous"></script>
+
+    <script>
+        // pomodoro logic
+        const workInput = document.getElementById('work-duration');
+        const shortBreakInput = document.getElementById('short-break');
+        const longBreakInput = document.getElementById('long-break');
+        const timerDisplay = document.getElementById('timer-display');
+        const modeLabel = document.getElementById('mode-label');
+        const startBtn = document.getElementById('start-btn');
+        const pauseBtn = document.getElementById('pause-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const beep = document.getElementById('beep-sound');
+
+        let timer = null;
+        let remaining = 0;
+        let mode = 'work'; // work, short, long
+        let cycleCount = 0;
+
+        function formatTime(sec) {
+            const m = Math.floor(sec / 60);
+            const s = sec % 60;
+            return m.toString().padStart(2, '0') + ':' + s.toString().padStart(2, '0');
+        }
+
+        function updateDisplay() {
+            timerDisplay.textContent = formatTime(remaining);
+            let label = 'Work';
+            let badgeClass = 'bg-primary';
+            if (mode === 'short') {
+                label = 'Short Break';
+                badgeClass = 'bg-info';
+            } else if (mode === 'long') {
+                label = 'Long Break';
+                badgeClass = 'bg-success';
+            }
+            modeLabel.textContent = label;
+            modeLabel.className = 'badge ' + badgeClass;
+        }
+
+        function startTimer() {
+            if (timer) return;
+            if (remaining <= 0) {
+                // initialize based on mode
+                const minutes = mode === 'work'
+                    ? parseInt(workInput.value, 10)
+                    : mode === 'short'
+                        ? parseInt(shortBreakInput.value, 10)
+                        : parseInt(longBreakInput.value, 10);
+                remaining = minutes * 60;
+                updateDisplay();
+            }
+            timer = setInterval(() => {
+                remaining--;
+                updateDisplay();
+                if (remaining <= 0) {
+                    clearInterval(timer);
+                    timer = null;
+                    beep.play().catch(() => {});
+                    // advance mode
+                    if (mode === 'work') {
+                        cycleCount++;
+                        mode = (cycleCount % 4 === 0) ? 'long' : 'short';
+                    } else {
+                        mode = 'work';
+                    }
+                    startTimer();
+                }
+            }, 1000);
+            startBtn.disabled = true;
+            pauseBtn.disabled = false;
+            resetBtn.disabled = false;
+        }
+
+        function pauseTimer() {
+            if (timer) {
+                clearInterval(timer);
+                timer = null;
+            }
+            startBtn.disabled = false;
+            pauseBtn.disabled = true;
+        }
+
+        function resetTimer() {
+            if (timer) clearInterval(timer);
+            timer = null;
+            remaining = 0;
+            mode = 'work';
+            cycleCount = 0;
+            updateDisplay();
+            startBtn.disabled = false;
+            pauseBtn.disabled = true;
+            resetBtn.disabled = true;
+        }
+
+        startBtn.addEventListener('click', startTimer);
+        pauseBtn.addEventListener('click', pauseTimer);
+        resetBtn.addEventListener('click', resetTimer);
+
+        // initialize display
+        remaining = parseInt(workInput.value, 10) * 60;
+        updateDisplay();
+    </script>
+</body>
+</html>
